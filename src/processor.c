@@ -62,8 +62,20 @@ int main() {
 
 	
 	while (ohsy86->currState < strlen(hexFile)) {
+
+	printf("--------------------------------------");
 	printf("Instruction %d\n", instructionCount++);
+	printf("--------------------------------------\n");
 	fetch(ohsy86);
+	decode(ohsy86);
+	execute(ohsy86);
+	memory(ohsy86);
+	writeback(ohsy86);
+	PC(ohsy86);
+	printProcessor(*ohsy86);	
+	printf("--------------------------------------");
+	printf("--------------------------------------\n");
+		
 //	printProcessorValues(ohsy86Values);
 //	printProcessor(ohsy86);
 		
@@ -282,7 +294,6 @@ void decode(Processor *ohsy86) {
 
 	long valA = 0;
 	long valB = 0;
-	long valE = 0; // will be calculated in execute
 
 	switch (icode) {
 		case 0:
@@ -325,13 +336,13 @@ void decode(Processor *ohsy86) {
 		default:
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
 
+
+	}
 	// updating ohsy86
 	values.valA = valA;
 	values.valB = valB;
-	values.valE = valE; // zero for now, calculated in execute
-
 	ohsy86->values = values;
-	}
+	printProcessorValues(values);
 }
 
 void execute(Processor *ohsy86) {
@@ -422,6 +433,7 @@ void execute(Processor *ohsy86) {
 				valE = valB + 8;
 				break;
 			case 10: // pushq
+				printf("This is the ValE, ValB: %ld, %ld\n", valE, valB);
 				valE = valB - 8;
 				break;
 			case 11: // popq
