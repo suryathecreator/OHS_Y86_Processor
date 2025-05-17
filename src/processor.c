@@ -19,12 +19,12 @@ char *file_parsing(char *);
 int readNextHex(Processor *);
 int hexToInt(char);
 unsigned long readNextEightHex(Processor *);
-processorValues fetch(Processor *);
-processorValues decode(Processor *);
-processorValues execute(Processor *);
-processorValues memory(Processor *);
-processorValues writeback(Processor *);
-processorValues PC(Processor *);
+void fetch(Processor *);
+void decode(Processor *);
+void execute(Processor *);
+void memory(Processor *);
+void writeback(Processor *);
+void PC(Processor *);
 void write(Processor *, long, long);
 long read(Processor *, long);
 bool cond(Processor *, int);
@@ -36,10 +36,10 @@ int main() {
 	// char *hexFile = strdup("30f40001000030f5000100000");  // To test // from tester file in canvas
 	printf("%s\n", hexFile);
 	
-	Processor ohsy86 = {0};
-	ohsy86.hexFile = hexFile;
-	ohsy86.PC = 0;
-	ohsy86.currState = 0;
+	Processor *ohsy86 = malloc(sizeof(Processor));
+	ohsy86->hexFile = hexFile;
+	ohsy86->PC = 0;
+	ohsy86->currState = 0;
 
 	// Testing fetch
 	/*
@@ -61,24 +61,24 @@ int main() {
 
 
 	
-	while (ohsy86.currState < strlen(hexFile)) {
+	while (ohsy86->currState < strlen(hexFile)) {
 	printf("Instruction %d\n", instructionCount++);
-	processorValues ohsy86Values = fetch(&ohsy86);
+	fetch(ohsy86);
 //	printProcessorValues(ohsy86Values);
 //	printProcessor(ohsy86);
-	ohsy86.values = ohsy86Values;
 		
 //	printProcessorValues(ohsy86Values);
-	ohsy86.values = decode(&ohsy86); // For debugging, can get rid of assignment later (as it modifies the real thing)
-	ohsy86.values = execute(&ohsy86);
-	ohsy86.values = memory(&ohsy86);
-	ohsy86.values = writeback(&ohsy86);
-	ohsy86.values = PC(&ohsy86);
-	ohsy86.PC += 1;
+//	ohsy86->values = decode(ohsy86); // For debugging, can get rid of assignment later (as it modifies the real thing)
+	//ohsy86->values = execute(ohsy86);
+//	ohsy86->values = memory(ohsy86);
+//	ohsy86->values = writeback(ohsy86);
+//	ohsy86->values = PC(ohsy86);
+	ohsy86->PC += 1;
 	}
 	 // UNCOMMENT AFTER TEST
 
 	free(hexFile);
+	free(ohsy86);
 	return 0;
 }
 
@@ -187,7 +187,7 @@ Memory:
 valM
 */
 
-processorValues fetch(Processor *ohsy86) {
+void fetch(Processor *ohsy86) {
 	int icode = readNextHex(ohsy86);
 	int ifun = readNextHex(ohsy86);
 	int rA, rB, valP;
@@ -256,6 +256,7 @@ processorValues fetch(Processor *ohsy86) {
 			break;
 		default:
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
+			break;
 	}
 	processorValues values = {
 			.icode = icode,
@@ -265,13 +266,10 @@ processorValues fetch(Processor *ohsy86) {
 			.valC = valC,
 			.valP = valP
 	};
-	printProcessorValues(processorValues values)
 	ohsy86->values = values;
-	
-	return values;
 }
 
-processorValues decode(Processor *ohsy86) {
+void decode(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 
 	// copying values into local vars
@@ -332,11 +330,11 @@ processorValues decode(Processor *ohsy86) {
 	values.valB = valB;
 	values.valE = valE; // zero for now, calculated in execute
 
-	return values;
+	ohsy86->values = values;
 	}
 }
 
-processorValues execute(Processor *ohsy86) {
+void execute(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 	int icode = values.icode;
 	int ifun = values.ifun;
@@ -434,11 +432,11 @@ processorValues execute(Processor *ohsy86) {
 	}	
 	// updating ohsy86
 	values.valE = valE;
-	return values;
-	
+	values.rB = rB;
+	ohsy86->values = values;	
 }
 
-processorValues memory(Processor *ohsy86) {
+void memory(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 	int icode = values.icode;
 	int ifun = values.ifun;
@@ -485,11 +483,11 @@ processorValues memory(Processor *ohsy86) {
 		default:
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
 	}
-		values.valM = valM;
-		return values;
+	values.valM = valM;
+	ohsy86->values = values;
 }
 
-processorValues writeback(Processor *ohsy86) {
+void writeback(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 	int icode = values.icode;
 	int ifun = values.ifun;
@@ -540,10 +538,10 @@ processorValues writeback(Processor *ohsy86) {
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
 			break;
 	}
-	return values;
+	ohsy86->values = values;
 }
 
-processorValues PC(Processor *ohsy86) {
+void PC(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 	int icode = values.icode;
 	int ifun = values.ifun;
@@ -600,7 +598,7 @@ processorValues PC(Processor *ohsy86) {
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
 			break;
 	}
-	return values;
+	ohsy86->values = values;
 }
 
 bool cond(Processor *ohsy86, int ifun) {
