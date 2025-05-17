@@ -12,8 +12,7 @@
 #include "processorValues.h"
 #include "helper.c"
 // #include "helper.c" To clean up code?
-
-
+#define HEX_INDEX(byteOffset) ((byteOffset) * 2)
 
 char *file_parsing(char *);
 int readNextHex(Processor *);
@@ -62,18 +61,49 @@ int main() {
 
 	
 	while (ohsy86->currState < strlen(hexFile)) {
-
 	printf("--------------------------------------");
 	printf("Instruction %d\n", instructionCount++);
-	printf("--------------------------------------\n");
-	fetch(ohsy86);
-	decode(ohsy86);
-	execute(ohsy86);
-	memory(ohsy86);
-	writeback(ohsy86);
-	PC(ohsy86);
 	printProcessor(*ohsy86);	
+	printf("F--------------------------------------\n");
+
+	fetch(ohsy86);
 	printf("--------------------------------------");
+	printProcessor(*ohsy86);	
+	printf("D--------------------------------------\n");
+
+	decode(ohsy86);
+
+	printf("--------------------------------------");
+	printProcessor(*ohsy86);	
+	printf("E--------------------------------------\n");
+	
+	execute(ohsy86);
+
+	printf("--------------------------------------");
+	printProcessor(*ohsy86);	
+	printf("M--------------------------------------\n");
+
+	memory(ohsy86);
+
+	printf("--------------------------------------");
+	printProcessor(*ohsy86);
+	printf("WB--------------------------------------\n");
+
+	writeback(ohsy86);
+
+	printf("--------------------------------------");
+	printProcessor(*ohsy86);
+	printf("PC--------------------------------------\n");
+
+	PC(ohsy86);
+		
+	printf("--------------------------------------\n");
+	printProcessor(*ohsy86);
+	printf("--------------------------------------\n");
+
+//	ohsy86->PC += 1;
+	printProcessor(*ohsy86);	
+	printf("^Final--------------------------------------");
 	printf("--------------------------------------\n");
 		
 //	printProcessorValues(ohsy86Values);
@@ -85,7 +115,6 @@ int main() {
 //	ohsy86->values = memory(ohsy86);
 //	ohsy86->values = writeback(ohsy86);
 //	ohsy86->values = PC(ohsy86);
-	ohsy86->PC += 1;
 	}
 	 // UNCOMMENT AFTER TEST
 
@@ -215,8 +244,12 @@ valM
 */
 
 void fetch(Processor *ohsy86) {
+	ohsy86->currState = HEX_INDEX(ohsy86->PC);
 	int icode = readNextHex(ohsy86);
 	int ifun = readNextHex(ohsy86);
+	printf("icode: %d, ifun: %d\n", icode, ifun);
+	printProcessor(*ohsy86);
+	
 	int rA, rB, valP;
 	long valC;
 
@@ -285,6 +318,7 @@ void fetch(Processor *ohsy86) {
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
 			break;
 	}
+	valP = ohsy86->currState / 2;
 	processorValues values = {
 			.icode = icode,
 			.ifun = ifun,
@@ -359,7 +393,7 @@ void decode(Processor *ohsy86) {
 	values.valA = valA;
 	values.valB = valB;
 	ohsy86->values = values;
-	printProcessorValues(values);
+	// printProcessorValues(values);
 }
 
 void execute(Processor *ohsy86) {
@@ -627,6 +661,7 @@ void PC(Processor *ohsy86) {
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
 			break;
 	}
+	ohsy86->currState = HEX_INDEX(ohsy86->PC);
 	ohsy86->values = values;
 }
 
