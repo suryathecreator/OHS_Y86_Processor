@@ -62,6 +62,7 @@ processorValues memory(Processor *);
 void writeback(Processor *);
 void write(Processor *, long, long);
 long read(Processor *, long);
+bool cond(Processor *, int);
 
 int main() {
 	int instructionCount = 1;
@@ -98,7 +99,7 @@ int main() {
 	processorValues ohsy86Values = fetch(&ohsy86);
 	ohsy86.values = ohsy86Values;
 		
-	ohsy86.values = decode(&ohsy86);
+	ohsy86.values = decode(&ohsy86); // For debugging, can get rid of assignment later (as it modifies the real thing)
 	ohsy86.values = execute(&ohsy86);
 	ohsy86.values = memory(&ohsy86);
 	writeback(&ohsy86);
@@ -215,8 +216,6 @@ Memory:
 valM
 */
 
-
-
 processorValues fetch(Processor *ohsy86) {
 	int icode = readNextHex(ohsy86);
 	int ifun = readNextHex(ohsy86);
@@ -239,7 +238,6 @@ processorValues fetch(Processor *ohsy86) {
 			rA = readNextHex(ohsy86);
 			rB = readNextHex(ohsy86);
 			valP = ohsy86->PC + 2;
-			ohsy86->currState += 4;
 			break;
 		case 3: // instruction irmovl
 			rA = readNextHex(ohsy86); // Stores immediate value
@@ -321,10 +319,39 @@ processorValues decode(Processor *ohsy86) {
 			break; // nop
 		case 2: // rrmovl
 			valA = ohsy86->registers[rA];
+			valB = 0;
 			break; // 
-// Finish up w/ the canvas guide
-		
-	}
+		case 3: // irmovl
+			break;
+		case 4: // rmmovl
+			valA = ohsy86->registers[rA];
+			valB = ohsy86->registers[rB];
+			break;
+		case 5: // mrmovl
+			valB = ohsy86->registers[rB];
+			break;
+		case 6: // OPq
+			valA = ohsy86->registers[rA];
+			valB = ohsy86->registers[rB];
+			break;
+		case 7: // jXX
+			break;
+		case 8: // call
+			valB = ohsy86->registers[RSP];
+			break;
+		case 9: // ret
+			valB = ohsy86->registers[RSP];
+			break;
+		case 10: // pushq
+			valA = ohsy86->registers[rA];
+			valB = ohsy86->registers[RSP];
+			break;
+		case 11: // popq
+			valA = ohsy86->registers[RSP];
+			valB = ohsy86->registers[RSP];
+			break;
+		default:
+			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
 
 	// updating ohsy86
 	values.valA = valA;
@@ -332,7 +359,327 @@ processorValues decode(Processor *ohsy86) {
 	values.valE = valE; // zero for now, calculated in execute
 
 	return values;
+	}
 }
 
+processorValues execute(Processor *ohsy86) {
+	processorValues values = ohsy86->values;
+	int icode = values.icode;
+	int ifun = values.ifun;
+	int rA = values.rA;
+	int rB = values.rB;
+	unsigned long valC = values.valC;
+	int valP = values.valP;
+	long valA = values.valA;
+	long valB = values.valB;
+	
+	long valE = 0;
+	long valEBefore;
 
+	switch (icode) {
+		case 0: // halt
+			break;
+		case 1: // nop
+			break;
+		case 2: // rrmovl
+			valE = valB + valC;
+			ohsy86->cond = cond(ohsy86, ifun);
+			if (!ohsy86->cond) {
+				rB = NOREG;
+			}
+			break;
+		case 3: // irmovl
+			valE = valC;
+			break;
+		case 4: // rmmovl
+			valE = valB + valC;
+			break;
+		case 5: // mrmovl
+			valE = valB + valC;
+			break;
+		case 6: // OPq
+			valEBefore = valA;
+			switch (ifun) { // Setting CC
+				case 0: // addq
+					valE = valA + valB;
+					if ((valA > 0) && (valB > 0) && (valE < 0)) 
+						ohsy86->OF = true;
+					else
+						ohsy86->OF = false;
+					if ((valA < 0) && (valB < 0) && (valE > 0)) {
+						ohsy86->OF = true;
+					}
+					break;
+				case 1: // subq
+					valE = valA - valB;
+					if ((valA > 0) && (valB < 0) && (valE < 0))
+						ohsy86->OF = true;
+					else
+						ohsy86->OF = false;
+					break;
+				case 2: // andq
+					valE = valA & valB;
+					break;
+				case 3: // xorq
+					valE = valA ^ valB;
+					break;
+			}
+			if (valE == 0) {
+				ohsy86->ZF = true;
+			}
+			else {
+				ohsy86->ZF = false;
+			}
+			if ((valEBefore < 0) && (valE > 0)) {
+				ohsy86->SF = true;
+			}
+			if ((valEBefore > 0) && (valE < 0)) {
+				ohsy86->SF = true;
+			}
+			else {
+				ohsy86->SF = false;
+			}
+			break;
+			case 7: // jXX
+				ohsy86->cond = cond(ohsy86, ifun);
+				break;
+			case 8: // call
+				valE = valB - 8;
+				break;
+			case 9: // ret
+				valE = valB + 8;
+				break;
+			case 10: // pushq
+				valE = valB - 8;
+				break;
+			case 11: // popq
+				valE = valB + 8;
+				break;
+			default:
+				printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
+	}	
+	// updating ohsy86
+	values.valE = valE;
+	return values;
+	
+}
 
+processorValues memory(Processor *ohsy86) {
+	processorValues values = ohsy86->values;
+	int icode = values.icode;
+	int ifun = values.ifun;
+	int rA = values.rA;
+	int rB = values.rB;
+	unsigned long valC = values.valC;
+	int valP = values.valP;
+	long valA = values.valA;
+	long valB = values.valB;
+	long valE = values.valE;
+	
+	long valM = 0;
+
+	switch (icode) {
+		case 0: // halt
+			break;
+		case 1: // nop
+			break;
+		case 2: // rrmovl
+			break;
+		case 3: // irmovl
+			break;
+		case 4: // rmmovl
+			valM = read(ohsy86, valE);
+			break;
+		case 5: // mrmovl
+			valM = read(ohsy86, valE);
+			break;
+		case 6: // OPq
+			break;
+		case 7: // jXX
+			break;
+		case 8: // call
+			write(ohsy86, valE, valP);
+		case 9: // ret
+			valM = read(ohsy86, valA);
+			break;
+		case 10: // pushq
+			write(ohsy86, valE, valA);
+			break;
+		case 11: // popq
+			valM = read(ohsy86, valA);
+			break;
+		default:
+			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
+	}
+		values.valM = valM;
+		return values;
+}
+
+processorValues writeBack(Processor *ohsy86) {
+	processorValues values = ohsy86->values;
+	int icode = values.icode;
+	int ifun = values.ifun;
+	int rA = values.rA;
+	int rB = values.rB;
+	unsigned long valC = values.valC;
+	int valP = values.valP;
+	long valA = values.valA;
+	long valB = values.valB;
+	long valE = values.valE;
+	long valM = values.valM;
+
+	switch (icode) {
+		case 0: // halt
+			break;
+		case 1: // nop
+			break;
+		case 2: // rrmovl
+			ohsy86->registers[rB] = valE;
+			break;
+		case 3: // irmovl
+			ohsy86->registers[rB] = valE;
+			break;
+		case 4: // rmmovl
+			break;
+		case 5: // mrmovl
+			ohsy86->registers[rA] = valM;
+			break;
+		case 6: // OPq
+			ohsy86->registers[rB] = valE;
+			break;
+		case 7: // jXX
+			break;
+		case 8: // call
+			ohsy86->registers[RSP] = valE;
+			break;
+		case 9: // ret
+			ohsy86->registers[RSP] = valE;
+			break;
+		case 10: // pushq
+			ohsy86->registers[RSP] = valE;
+			break;
+		case 11: // popq
+			ohsy86->registers[RSP] = valE;
+			ohsy86->registers[rA] = valM;
+			break;
+		default:
+			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
+			break;
+	}
+	return values;
+}
+
+processorValues PC(Processor *ohsy86) {
+	processorValues values = ohsy86->values;
+	int icode = values.icode;
+	int ifun = values.ifun;
+	int rA = values.rA;
+	int rB = values.rB;
+	unsigned long valC = values.valC;
+	int valP = values.valP;
+	long valA = values.valA;
+	long valB = values.valB;
+	long valE = values.valE;
+	long valM = values.valM;
+
+	switch (icode) {
+		case 0: // halt
+			break;
+		case 1: // nop
+			break;
+		case 2: // rrmovl
+			ohsy86->PC = valP;
+			break;
+		case 3: // irmovl
+			ohsy86->PC = valP;
+			break;
+		case 4: // rmmovl
+			ohsy86->PC = valP;
+			break;
+		case 5: // mrmovl
+			ohsy86->PC = valP;
+			break;
+		case 6: // OPq
+			ohsy86->PC = valP;
+			break;
+		case 7: // jXX
+			if (ohsy86->cond == true) {
+				ohsy86->PC = valC;
+			}
+			else {
+				ohsy86->PC = valP;
+			}
+			break;
+		case 8: // call
+			ohsy86->PC = valC;
+			break;
+		case 9: // ret
+			ohsy86->PC = valM;
+			break;
+		case 10: // pushq
+			ohsy86->PC = valP;
+			break;
+		case 11: // popq
+			ohsy86->PC = valP;
+			break;
+		default:
+			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
+			break;
+	}
+	return values;
+}
+
+bool cond(Processor *ohsy86, int ifun) {
+	switch (ifun) {
+		case 0: // jmp
+			return true;
+		case 1: // jle
+			if (ohsy86->SF != ohsy86->OF) {
+				return true;
+			}
+			if (ohsy86->ZF == true) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		case 2: // jl
+			if (ohsy86->SF != ohsy86->OF) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		case 3: // je
+			if (ohsy86->ZF == true) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		case 4: // jne
+			if (ohsy86->ZF == false) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		case 5: // jge
+			if (ohsy86->SF == ohsy86->OF) {
+				return true;
+			}
+			if (ohsy86->ZF == true) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		case 6: // jg
+			if (ohsy86->SF == ohsy86->OF) {
+				return true;
+			}
+		default:
+			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
+			return false; // to silence warning
+	}
+}	
