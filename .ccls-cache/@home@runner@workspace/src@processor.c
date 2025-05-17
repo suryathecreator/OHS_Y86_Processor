@@ -144,12 +144,27 @@ unsigned long readNextEightHex(Processor *ohsy86) {
 }
 
 /* memory stuffs */
-void write(Processor *ohsy86, long index, long value) {
-	ohsy86->memory[index] = value;
+void write(Processor *ohsy86, long index, long value) { // 8 bytes
+	for (int i = 0; i < 8; i++) {
+			ohsy86->memory[index + i] = (value >> (8 * i)) & 0xFF;  // little-endian
+	}
 }
 
-long read(Processor *ohsy86, long index) {
-	return ohsy86->memory[index];
+long read(Processor *ohsy86, long index) { // 8 bytes, little-endian/standard
+	long result = 0;
+	for (int i = 0; i < 8; i++) {
+			result |= ((long)(unsigned char)ohsy86->memory[index + i]) << (8 * i); // little-endian
+	}
+	return result;
+}
+
+long read_big(Processor *ohsy86, long index) { // 8 bytes, big-endian for testing
+		long result = 0;
+		for (int i = 0; i < 8; i++) {
+				result <<= 8;
+				result |= (unsigned char)ohsy86->memory[index + i];
+		}
+		return result;
 }
 
 int hexToInt(char hex) {
@@ -323,6 +338,7 @@ void decode(Processor *ohsy86) {
 			valB = ohsy86->registers[RSP];
 			break;
 		case 9: // ret
+			valA = ohsy86->registers[RSP];
 			valB = ohsy86->registers[RSP];
 			break;
 		case 10: // pushq
@@ -335,6 +351,7 @@ void decode(Processor *ohsy86) {
 			break;
 		default:
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program."); // Debugging, adding error handling later
+			break;
 
 
 	}
@@ -365,14 +382,14 @@ void execute(Processor *ohsy86) {
 		case 1: // nop
 			break;
 		case 2: // rrmovl
-			valE = valB + valC;
+			valE = 0 + valA; // valB = 0
 			ohsy86->cond = cond(ohsy86, ifun);
 			if (!ohsy86->cond) {
 				rB = NOREG;
 			}
 			break;
 		case 3: // irmovl
-			valE = valC;
+			valE = 0 + valC;
 			break;
 		case 4: // rmmovl
 			valE = valB + valC;
@@ -666,4 +683,4 @@ bool cond(Processor *ohsy86, int ifun) {
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
 			return false; // to silence warning
 	}
-}	
+}

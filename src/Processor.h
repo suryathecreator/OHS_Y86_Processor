@@ -30,7 +30,7 @@ typedef struct {
 		int PC;
 		int currState; // location within hexFile
 		bool ZF, SF, OF, cond; 
-		unsigned long memory[65536]; // 64k memory
+		long memory[65536]; // 64k memory
 		char *hexFile; // File in a character array of hex values
 		processorValues values;
 } Processor;

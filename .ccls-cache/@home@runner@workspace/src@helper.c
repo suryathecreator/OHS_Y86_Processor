@@ -14,6 +14,7 @@
 
 void printProcessor(Processor ohsy86);
 void printProcessorValues(processorValues values);
+void printMemory(Processor ohsy86, long start, long end);
 
 void printProcessor(Processor ohsy86) {
 	printf("Registers: \n");
@@ -26,11 +27,8 @@ void printProcessor(Processor ohsy86) {
 	printf("SF: %d\n", ohsy86.SF);
 	printf("OF: %d\n", ohsy86.OF);
 	printf("cond: %d\n", ohsy86.cond);
-	printf("memory: \n");
-	for (int i = 0; i < 100; i++) {
-		printf("(->100)Memory %d: %#lx\n", i, ohsy86.memory[i]);
-	}
 	printf("hexFile: %s\n", ohsy86.hexFile);
+	printMemory(ohsy86, 240, 280);
 	printProcessorValues(ohsy86.values);
 }
 
@@ -46,4 +44,22 @@ void printProcessorValues(processorValues values) {
 	printf("valB: %ld\n", values.valB);
 	printf("valE: %ld\n", values.valE);
 	printf("valM: %ld\n", values.valM);
+}
+
+void printMemory(Processor ohsy86, long start, long end){
+
+	if (start < 0 || end > 65535 || start > end) {
+		printf("Error: Invalid memory range. Please contact the developer to fix a logical error within the program.");
+		return; // Implement error handling later
+	}
+	for (long i = start; i <= end; i += 8) {
+			if (i > end) break; // to end right where asked
+
+			printf("Addr %3ld: ", i);
+			for (long j = 0; j < 8; j++) {
+				if (i + j > end) break; // to end right where asked
+				printf("%02x ", (unsigned char)ohsy86.memory[i + j]);
+			}
+		printf("\n");
+	}
 }
