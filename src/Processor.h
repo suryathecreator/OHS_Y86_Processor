@@ -1,10 +1,12 @@
 /*
-* @authors Surya Duraivenkatesh, Josh Tittiranonda
-* @date: 05/2025
-* This is the helper code for the OHS Y86-64 (Sequential) Processor! With an input file of object code, you will receive a lively simulation of the object code running on the processor. Welcome to the world of OHS Y86!
-*/
+ * @authors Surya Duraivenkatesh, Josh Tittiranonda
+ * @date: 05/2025
+ * Description.
+ */
 
-// Add more things that help clean the code up, then uncomment helper line.
+#ifndef PROCESSOR_H
+#define PROCESSOR_H
+#include "processorValues.h"
 
 #define RAX 0
 #define RCX 1
@@ -27,7 +29,10 @@ typedef struct {
 		long registers[15];
 		int PC;
 		int currState; // location within hexFile
-		bool ZF, SF, OF; 
+		bool ZF, SF, OF, cond; 
 		unsigned long memory[65536]; // 64k memory
 		char *hexFile; // File in a character array of hex values
+		processorValues values;
 } Processor;
+
+#endif

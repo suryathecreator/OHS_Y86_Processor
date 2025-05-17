@@ -8,48 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-// #include "helper.h" To clean up code.
+#include "Processor.h"
+#include "processorValues.h"
+#include "helper.c"
+// #include "helper.c" To clean up code?
 
-#define RAX 0
-#define RCX 1
-#define RDX 2
-#define RBX 3
-#define RSP 4
-#define RBP 5
-#define RSI 6
-#define RDI 7
-#define R8  8
-#define R9  9
-#define R10 10
-#define R11 11
-#define R12 12
-#define R13 13
-#define R14 14
-#define NOREG 15
 
-typedef struct {
-		int icode; // instruction name
-		int ifun; //  type of instruction (e.g. add, sub, etc.)
-		int rA; // reg a / one input field
-		int rB; // reg b / one input field
-		unsigned long valC; // never signed
-		int valP; // pc with offset due to inst.
-
-		long valA; // can be signed (reg contents)
-		long valB; // can be signed (reg contents)
-		long valE; // result of arithmetic, can be signed
-		unsigned long valM; // memory, cannot be signed
-} processorValues;
-
-typedef struct {
-		long registers[15];
-		int PC;
-		int currState; // location within hexFile
-		bool ZF, SF, OF, cond; 
-		unsigned long memory[65536]; // 64k memory
-		char *hexFile; // File in a character array of hex values
-		processorValues values;
-} Processor;
 
 char *file_parsing(char *);
 int readNextHex(Processor *);
@@ -59,7 +23,8 @@ processorValues fetch(Processor *);
 processorValues decode(Processor *);
 processorValues execute(Processor *);
 processorValues memory(Processor *);
-void writeback(Processor *);
+processorValues writeback(Processor *);
+processorValues PC(Processor *);
 void write(Processor *, long, long);
 long read(Processor *, long);
 bool cond(Processor *, int);
@@ -67,8 +32,8 @@ bool cond(Processor *, int);
 int main() {
 	int instructionCount = 1;
 	
-	// char *hexFile = file_parsing("test.yo"); // Loading into the file array. **UNCOMMENT AFTER TEST**
-	char *hexFile = strdup("30f40001000030f500010000");  // To test // from tester file in canvas
+	 char *hexFile = file_parsing("asum.yo"); // Loading into the file array. **UNCOMMENT AFTER TEST**
+	// char *hexFile = strdup("30f40001000030f5000100000");  // To test // from tester file in canvas
 	printf("%s\n", hexFile);
 	
 	Processor ohsy86 = {0};
@@ -77,35 +42,41 @@ int main() {
 	ohsy86.currState = 0;
 
 	// Testing fetch
-	processorValues val1 = fetch(&ohsy86);
-	printf("icode: %d\n", val1.icode);
-	printf("ifun : %d\n", val1.ifun);
-	printf("rA   : %d\n", val1.rA);
-	printf("rB   : %d\n", val1.rB);
-	printf("valC : %#lx\n", val1.valC);
-	printf("valP : %d\n", val1.valP);
-
-	processorValues val2 = fetch(&ohsy86);
-	printf("icode: %d\n", val2.icode);
-	printf("ifun : %d\n", val2.ifun);
-	printf("rA   : %d\n", val2.rA);
-	printf("rB   : %d\n", val2.rB);
-	printf("valC : %#lx\n", val2.valC);
-	printf("valP : %d\n", val2.valP);
-
 	/*
+	processorValues val1 = fetch(&ohsy86);
+	ohsy86.values = val1;
+	printProcessorValues(val1);
+	printProcessor(ohsy86);
+	processorValues val2 = fetch(&ohsy86);
+	ohsy86.values = val2;
+	printProcessorValues(val2);
+	printProcessor(ohsy86);
+	processorValues val3 = fetch(&ohsy86);
+	ohsy86.values = val3;
+	printProcessorValues(val3);
+	printProcessor(ohsy86);
+	*/
+
+// 	processorValues val1 = fetch(&ohsy86);
+
+
+	
 	while (ohsy86.currState < strlen(hexFile)) {
 	printf("Instruction %d\n", instructionCount++);
 	processorValues ohsy86Values = fetch(&ohsy86);
+//	printProcessorValues(ohsy86Values);
+//	printProcessor(ohsy86);
 	ohsy86.values = ohsy86Values;
 		
+//	printProcessorValues(ohsy86Values);
 	ohsy86.values = decode(&ohsy86); // For debugging, can get rid of assignment later (as it modifies the real thing)
 	ohsy86.values = execute(&ohsy86);
 	ohsy86.values = memory(&ohsy86);
-	writeback(&ohsy86);
+	ohsy86.values = writeback(&ohsy86);
+	ohsy86.values = PC(&ohsy86);
 	ohsy86.PC += 1;
 	}
-	*/ // UNCOMMENT AFTER TEST
+	 // UNCOMMENT AFTER TEST
 
 	free(hexFile);
 	return 0;
@@ -294,6 +265,9 @@ processorValues fetch(Processor *ohsy86) {
 			.valC = valC,
 			.valP = valP
 	};
+	printProcessorValues(processorValues values)
+	ohsy86->values = values;
+	
 	return values;
 }
 
@@ -515,7 +489,7 @@ processorValues memory(Processor *ohsy86) {
 		return values;
 }
 
-processorValues writeBack(Processor *ohsy86) {
+processorValues writeback(Processor *ohsy86) {
 	processorValues values = ohsy86->values;
 	int icode = values.icode;
 	int ifun = values.ifun;
