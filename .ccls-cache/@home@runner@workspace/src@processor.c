@@ -472,7 +472,7 @@ void memory(Processor *ohsy86) {
 		case 3: // irmovl
 			break;
 		case 4: // rmmovl
-			valM = read(ohsy86, valE);
+			write(ohsy86, valE, valA);
 			break;
 		case 5: // mrmovl
 			valM = read(ohsy86, valE);
