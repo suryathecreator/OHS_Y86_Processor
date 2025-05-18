@@ -27,6 +27,7 @@ void PC(Processor *);
 void write(Processor *, long, long);
 long read(Processor *, long);
 bool cond(Processor *, int);
+void loadHexToMemory(Processor *);
 
 int main() {
 	int instructionCount = 1;
@@ -39,7 +40,8 @@ int main() {
 	ohsy86->hexFile = hexFile;
 	ohsy86->PC = 0;
 	ohsy86->currState = 0;
-
+	
+	loadHexToMemory(ohsy86);
 	// Testing fetch
 	/*
 	processorValues val1 = fetch(&ohsy86);
@@ -717,5 +719,14 @@ bool cond(Processor *ohsy86, int ifun) {
 		default:
 			printf("Error: Invalid instruction code. Please contact the developer to fix a logical error within the program.");
 			return false; // to silence warning
+	}
+}
+
+void loadHexToMemory(Processor *ohsy86) {
+	int len = strlen(ohsy86->hexFile);
+	for (int i = 0; i < len; i += 2) {
+		char byteStr[3] = {ohsy86->hexFile[i], ohsy86->hexFile[i + 1], '\0'};
+		unsigned char byte = (unsigned char)strtoul(byteStr, NULL, 16);
+		ohsy86->memory[i / 2] = byte;
 	}
 }

@@ -28,7 +28,7 @@ void printProcessor(Processor ohsy86) {
 	printf("OF: %d\n", ohsy86.OF);
 	printf("cond: %d\n", ohsy86.cond);
 	printf("hexFile: %s\n", ohsy86.hexFile);
-	printMemory(ohsy86, 240, 280);
+	printMemory(ohsy86, 212, 280);
 	printProcessorValues(ohsy86.values);
 }
 
