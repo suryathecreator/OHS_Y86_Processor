@@ -65,8 +65,8 @@ int main() {
 	while (ohsy86->currState < strlen(hexFile)) {
 	printf("--------------------------------------");
 	printf("Instruction %d\n", instructionCount++);
-	printProcessor(*ohsy86);	
-	printf("F--------------------------------------\n");
+	//printProcessor(*ohsy86);	
+	/*printf("F--------------------------------------\n");
 
 	fetch(ohsy86);
 	printf("--------------------------------------");
@@ -104,8 +104,16 @@ int main() {
 	printf("--------------------------------------\n");
 
 //	ohsy86->PC += 1;
+*/
+		fetch(ohsy86);
+		decode(ohsy86);
+		execute(ohsy86);
+		memory(ohsy86);
+		writeback(ohsy86);
+		PC(ohsy86);
+		//ohsy86->PC += 1;
 	printProcessor(*ohsy86);	
-	printf("^Final--------------------------------------");
+	printf("^Result displayed is after ins.--------------------------------------");
 	printf("--------------------------------------\n");
 		
 //	printProcessorValues(ohsy86Values);
